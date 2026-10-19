@@ -1,11 +1,18 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
+from typing import Annotated, Literal
+from fastapi import APIRouter, Query
+from pydantic import BaseModel, Field
 
 class Item(BaseModel):
     name: str
     description: str | None = None
     price: float
     tax: float | None = None
+
+class FilterParams(BaseModel):
+    limit: int = Field(100, gt=0, le=100)
+    offset: int = Field(0, ge=0)
+    order_by: Literal["created_at", "updated_at"] = "created_at"
+    tags: list[str] = []
 
 router = APIRouter()
 
@@ -35,3 +42,11 @@ async def create_item(item: Item):
         price_with_tax = item.price + item.tax
         item_dict.update({"price_with_tax": price_with_tax})
     return item_dict
+
+@router.put("/items/{item_id}")
+async def update_item(item_id: int, item: Item):
+    return {"item_id": item_id, **item.model_dump()}
+
+@router.get("/filtered-items/")
+async def read_items(filter_query: Annotated[FilterParams, Query()]):
+    return filter_query
